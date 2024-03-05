@@ -21,7 +21,7 @@
 from setuptools import *
 
 setup(
-    name='pb_tool',
+    name="pb_tool",
     version='3.0.0',
     description='A tool to aid in QGIS Python plugin development',
     long_description='pb_tool provides commands to deploy and publish a QGIS Python plugin.',
@@ -39,13 +39,13 @@ setup(
         'License :: OSI Approved :: GNU General Public License v2 or later (GPLv2+)',
         'Topic :: Scientific/Engineering :: GIS'],
     keywords='QGIS PyQGIS',
-    platforms=['Linux', 'Windows', 'OS X'],
-    packages=find_packages(),
-    package_data={'pb_tool': ['templates/*.tmpl']},
+    platforms=["Linux", "Windows", "OS X"],
+    packages=["pb_tool", "pb_tool.templates"],
+    package_data={"pb_tool": ["", "templates/*.tmpl"]},
     include_package_data=True,
-    py_modules=['pb_tool'],
+    py_modules=["pb_tool"],
     install_requires=[
-        'Click', 
+        'click',
         'Sphinx',
         'colorama',
         'setuptools',
