@@ -20,7 +20,6 @@
 __author__ = 'gsherman'
 
 import os
-from platform import platform
 import sys
 import subprocess
 import shutil
@@ -72,7 +71,7 @@ def cli():
 def __version():
     """ return the current version and date """
     # TODO update this with each release
-    return ("2.0.2", "2018-12-26")
+    return ("3.0.0", "2024-04-05")
 
 
 def get_install_files(cfg):
@@ -161,13 +160,13 @@ def deploy_files(config_file, plugin_path, confirm=True, quick=False):
 
 def install_files(plugin_dir, cfg):
     errors = []
-    install_files = get_install_files(cfg)
+    files_to_install = get_install_files(cfg)
     # make the plugin directory if it doesn't exist
     if not os.path.exists(plugin_dir):
         os.makedirs(plugin_dir)
 
     fail = False
-    for file in install_files:
+    for file in files_to_install:
         click.secho("Copying {0}".format(file), fg='magenta', nl=False)
         try:
             shutil.copy(file, os.path.join(plugin_dir, file))
@@ -176,18 +175,18 @@ def install_files(plugin_dir, cfg):
             errors.append("Error copying files: {0}, {1}".format(file, oops.strerror))
             click.echo(click.style(' ----> ERROR', fg='red'))
             fail = True
-        extra_dirs = cfg.get('files', 'extra_dirs').split()
+        extra_directories = cfg.get('files', 'extra_dirs').split()
         # print "EXTRA DIRS: {}".format(extra_dirs)
-    for xdir in extra_dirs:
-        click.secho("Copying contents of {0} to {1}".format(xdir, plugin_dir),
+    for directory in extra_directories:
+        click.secho("Copying contents of {0} to {1}".format(directory, plugin_dir),
                     fg='magenta',
                     nl=False)
         try:
-            shutil.copytree(xdir, "{0}/{1}".format(plugin_dir, xdir))
+            shutil.copytree(directory, "{0}/{1}".format(plugin_dir, directory))
             print("")
         except Exception as oops:
             errors.append(
-                "Error copying directory: {0}, {1}".format(xdir, oops.message))
+                "Error copying directory: {0}, {1}".format(directory, oops.message))
             click.echo(click.style(' ----> ERROR', fg='red'))
             fail = True
     help_src = cfg.get('help', 'dir')
@@ -366,7 +365,7 @@ def translate(config):
     is_flag=True,
     help='Do a quick packaging without dclean and deploy (plugin must have been previously deployed)'
 )
-def zip(config_file, quick):
+def zip(config, quick):
     """ Package the plugin into a zip file
     suitable for uploading to the QGIS
     plugin repository"""
@@ -386,12 +385,12 @@ def zip(config_file, quick):
             use_7z = True
     click.secho('Found zip: %s' % zip, fg='green')
 
-    name = get_config(config_file).get('plugin', 'name', fallback=None)
+    name = get_config(config).get('plugin', 'name', fallback=None)
     if not quick:
         proceed = click.confirm('This requires a dclean and deploy first. Proceed?')
         if proceed:
             # clean_deployment(False, config)
-            deploy_files(config_file, plugin_path=None, confirm=False)
+            deploy_files(config, plugin_path=None, confirm=False)
     else:
         # Check to see if the plugin directory exists, otherwise we can't
         # do a quick zip
@@ -402,7 +401,7 @@ def zip(config_file, quick):
             # proceed = click.confirm(
             #     'Do you want to deploy and proceed with packaging?')
             # if proceed:
-            deploy_files(config_file, plugin_path=None, confirm=False)
+            deploy_files(config, plugin_path=None, confirm=False)
         proceed = True
 
     # confirm = click.confirm(
