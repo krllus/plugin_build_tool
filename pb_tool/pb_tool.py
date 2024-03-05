@@ -26,10 +26,10 @@ import subprocess
 import shutil
 import errno
 import glob
-import urllib2
-import ConfigParser
+import urllib3
+import re
+import configparser
 from string import Template
-from distutils.dir_util import copy_tree
 
 import click
 
@@ -183,7 +183,7 @@ def install_files(plugin_dir, cfg):
                     fg='magenta',
                     nl=False)
         try:
-            copy_tree(xdir, "{0}/{1}".format(plugin_dir, xdir))
+            shutil.copytree(xdir, "{0}/{1}".format(plugin_dir, xdir))
             print("")
         except Exception as oops:
             errors.append(
@@ -196,9 +196,8 @@ def install_files(plugin_dir, cfg):
     click.secho("Copying {0} to {1}".format(help_src, help_target),
                 fg='magenta',
                 nl=False)
-    # shutil.copytree(help_src, help_target)
     try:
-        copy_tree(help_src, help_target)
+        shutil.copytree(help_src, help_target)
         print("")
     except Exception as oops:
         errors.append("Error copying help files: {0}, {1}".format(
@@ -206,9 +205,9 @@ def install_files(plugin_dir, cfg):
         click.echo(click.style(' ----> ERROR', fg='red'))
         fail = True
     if fail:
-        print ("\nERRORS:")
+        print("\nERRORS:")
         for error in errors:
-            print (error)
+            print(error)
         print("")
         print(
             "One or more files/directories specified in your config file\n"
@@ -258,7 +257,7 @@ def clean_docs():
         subprocess.check_call([makeprg, 'clean'])
         os.chdir(cwd)
     else:
-        print( "No help directory exists in the current directory")
+        print("No help directory exists in the current directory")
 
 
 @cli.command()
@@ -284,7 +283,7 @@ def clean(config):
     for file in files:
         try:
             os.unlink(file)
-            print( "Deleted: {0}".format(file))
+            print("Deleted: {0}".format(file))
         except OSError as oops:
             print("Couldn't delete {0}: {1}".format(file, oops.strerror))
 
@@ -513,7 +512,7 @@ def list(config_file):
     if os.path.exists(config_file):
         with open(config_file) as cfg:
             for line in cfg:
-                print line[:-1]
+                print(line[:-1])
     else:
         click.secho(
             "There is no {0} file in the current directory".format(config_file),
@@ -596,35 +595,37 @@ def xxconfig(name, package):
 def update():
     """ Check for update to pb_tool """
     try:
-        u = urllib2.urlopen('http://geoapt.net/pb_tool/current_version.txt')
-        version = u.read()[:-1]
-        click.secho("Latest version is %s" % version, fg='green')
+        request = urllib3.request("GET", "http://geoapt.net/pb_tool/current_version.txt")
+        decoded_result = request.data.decode("utf-8")
+        server_version = re.sub(r'[^0-9]', '', decoded_result)
+        click.secho("Latest version is %s" % server_version, fg='green')
+
         # convert version numbers to int
         this_version = int(__version()[0].replace('.', ''))
-        current_version = int(version.replace('.',''))
-                           
+        current_version = int(server_version.replace('.', ''))
+
         if this_version == current_version:
             click.secho("Your version is up to date", fg='green')
         elif current_version > this_version:
             click.secho("You have Version %s" % __version()[0], fg='green')
             click.secho("You can upgrade by running this command:")
             cmd = 'pip install --upgrade pb_tool'
-            print ("   %s" % cmd)
+            print("   %s" % cmd)
         elif this_version > current_version:
             click.secho("You have development Version %s" % __version()[0], fg='green')
 
-    except urllib2.URLError as uoops:
+    except urllib3.exceptions.HTTPError as uoops:
         click.secho("Unable to check for update.")
-        click.secho("%s" % uoops.reason)
+        click.secho("%s" % uoops)
 
 
 def check_cfg(cfg, section, name):
     try:
         cfg.get(section, name)
         return True
-    except ConfigParser.NoOptionError as oops:
+    except configparser.NoOptionError as oops:
         print(oops.message)
-    except ConfigParser.NoSectionError:
+    except configparser.NoSectionError:
         print("Missing section '{0}' when looking for option '{1}'".format(
             section, name))
     return False
@@ -635,9 +636,9 @@ def get_config(config='pb_tool.cfg'):
     Read the config file pb_tools.cfg and return it
     """
     if os.path.exists(config):
-        cfg = ConfigParser.ConfigParser()
+        cfg = configparser.ConfigParser()
         cfg.read(config)
-        #click.echo(cfg.sections())
+        # click.echo(cfg.sections())
         return cfg
     else:
         print("There is no {0} file in the current directory".format(config))
@@ -646,31 +647,31 @@ def get_config(config='pb_tool.cfg'):
 
 
 def compiled_ui(cfg):
-    #cfg = get_config(config)
+    # cfg = get_config(config)
     try:
         uis = cfg.get('files', 'compiled_ui_files').split()
         compiled = []
         for ui in uis:
             (base, ext) = os.path.splitext(ui)
             compiled.append('{0}.py'.format(base))
-        #print "Compiled UI files: {}".format(compiled)
+        # print "Compiled UI files: {}".format(compiled)
         return compiled
-    except ConfigParser.NoSectionError as oops:
+    except configparser.NoSectionError as oops:
         print(oops.message)
         sys.exit(1)
 
 
 def compiled_resource(cfg):
-    #cfg = get_config(config)
+    # cfg = get_config(config)
     try:
         res_files = cfg.get('files', 'resource_files').split()
         compiled = []
         for res in res_files:
             (base, ext) = os.path.splitext(res)
             compiled.append('{0}.py'.format(base))
-        #print "Compiled resource files: {}".format(compiled)
+        # print "Compiled resource files: {}".format(compiled)
         return compiled
-    except ConfigParser.NoSectionError as oops:
+    except configparser.NoSectionError as oops:
         print(oops.message)
         sys.exit(1)
 
@@ -678,7 +679,7 @@ def compiled_resource(cfg):
 def compile_files(cfg):
     # Compile all ui and resource files
     # TODO add changed detection
-    #cfg = get_config(config)
+    # cfg = get_config(config)
 
     # check to see if we have pyuic4
     pyuic4 = check_path('pyuic4')
@@ -741,8 +742,7 @@ def copy(source, destination):
 
     """
     try:
-        #shutil.copytree(source, destination)
-        copy_tree(source, destination)
+        shutil.copytree(source, destination)
     except OSError as e:
         # If the error was caused because the source wasn't a directory
         if e.errno == errno.ENOTDIR:
