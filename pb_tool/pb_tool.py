@@ -19,18 +19,18 @@
 """
 __author__ = 'gsherman'
 
-import os
-import sys
-import subprocess
-import shutil
+import configparser
 import errno
 import glob
-import urllib3
+import os
 import re
-import configparser
-from string import Template
-
+import shutil
+import subprocess
+import sys
 import click
+import py7zr
+import urllib3
+from string import Template
 
 
 class AliasedGroup(click.Group):
@@ -71,7 +71,7 @@ def cli():
 def __version():
     """ return the current version and date """
     # TODO update this with each release
-    return ("3.0.0", "2024-04-05")
+    return ("3.0.1", "2024-04-10")
 
 
 def get_install_files(cfg):
@@ -370,21 +370,6 @@ def zip(config, quick):
     suitable for uploading to the QGIS
     plugin repository"""
 
-    # check to see if we can find zip or 7z
-    use_7z = False
-    zip = check_path('zip')
-    if not zip:
-        # check for 7z
-        zip = check_path('7z')
-        if not zip:
-            click.secho('zip or 7z not found. Unable to package the plugin',
-                        fg='red')
-            click.secho('Check your path or install a zip program', fg='red')
-            return
-        else:
-            use_7z = True
-    click.secho('Found zip: %s' % zip, fg='green')
-
     name = get_config(config).get('plugin', 'name', fallback=None)
     if not quick:
         proceed = click.confirm('This requires a dclean and deploy first. Proceed?')
@@ -395,13 +380,10 @@ def zip(config, quick):
         # Check to see if the plugin directory exists, otherwise we can't
         # do a quick zip
         if not os.path.exists(os.path.join(get_plugin_directory(), name)):
-            # click.secho(
-            #     "You must deploy the plugin before you can package it using -q",
-            #     fg='red')
-            # proceed = click.confirm(
-            #     'Do you want to deploy and proceed with packaging?')
-            # if proceed:
-            deploy_files(config, plugin_path=None, confirm=False)
+            click.secho("You must deploy the plugin before you can package it using -q", fg='red')
+            proceed = click.confirm('Do you want to deploy and proceed with packaging?')
+            if proceed:
+                deploy_files(config, plugin_path=None, confirm=False)
         proceed = True
 
     # confirm = click.confirm(
@@ -412,24 +394,30 @@ def zip(config, quick):
         if os.path.exists('{0}.zip'.format(name)):
             os.unlink('{0}.zip'.format(name))
         if name:
-            cwd = os.getcwd()
-            os.chdir(get_plugin_directory())
-            # click.secho("Current directory is {}".format(os.getcwd()), fg='magenta')
-            if use_7z:
-                subprocess.check_call(
-                    [zip, 'a', '-r', os.path.join(cwd, '{0}.zip'.format(name)),
-                     name])
-            else:
-                subprocess.check_call([
-                    zip, '-r', os.path.join(cwd, '{0}.zip'.format(name)), name
-                ])
+            current_project_path = os.getcwd()
+            current_project_dir_name = os.path.basename(current_project_path)
 
-            print(
-                'The {0}.zip archive has been created in the current directory'.format(
-                    name))
+            click.secho("current_project_path is {}".format(current_project_path), fg='magenta')
+            click.secho("current_project_dir_name is {}".format(current_project_dir_name), fg='magenta')
+
+            compressed_plugin_file = os.path.join(current_project_path, '{0}.zip'.format(name))
+
+            try:
+                with py7zr.SevenZipFile(compressed_plugin_file, mode="w") as archive:
+                    archive.writeall(path=current_project_path, arcname="")
+                click.secho('The {0}.zip archive has been created in the current directory'.format(name), fg='green')
+            except:
+                click.secho("failed to failed to generate file with py7zr", fg='red')
+
+            plugin_destination_file = os.path.join(get_plugin_directory(), '{0}.zip'.format(name))
+
+            if os.path.exists(plugin_destination_file):
+                os.unlink(plugin_destination_file)
+            shutil.copyfile(src=compressed_plugin_file, dst=plugin_destination_file)
+            click.secho("plugin {} copied to plugins folder({})".format(name, get_plugin_directory()), fg='green')
+
         else:
-            click.echo(
-                "Your config file is missing the plugin name (name=parameter)")
+            click.echo("Your config file is missing the plugin name (name=parameter)")
 
 
 @cli.command()
@@ -475,20 +463,6 @@ def validate(config_file):
         Make sure your QGIS environment is setup properly for development and Python
         has access to the PyQt4.QtCore module.""", fg='red')
 
-    zipbin = find_zip()
-    a7z = find_7z()
-    if zipbin:
-        zip_utility = zipbin
-    elif a7z:
-        zip_utility = a7z
-    else:
-        zip_utility = None
-    if not zip_utility:
-        click.secho('zip or 7z not found. Unable to package the plugin',
-                    fg='red')
-        click.secho('Check your path or install a zip program', fg='red')
-    else:
-        click.secho('Found suitable zip utility: {}'.format(zip_utility), fg='green')
     # check for templates - uncomment next 4 after create function is done
     # print(__file__)
     # print("Module: {}".format (sys.modules['pb_tool']))
@@ -853,15 +827,3 @@ def file_changed(infile, outfile):
         return infile_s.st_mtime > outfile_s.st_mtime
     except:
         return True
-
-
-def find_zip():
-    # check to see if we can find zip
-    zip = check_path('zip')
-    return zip
-
-
-def find_7z():
-    # check for 7z
-    zip = check_path('7z')
-    return zip
