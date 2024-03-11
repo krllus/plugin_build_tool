@@ -71,7 +71,7 @@ def cli():
 def __version():
     """ return the current version and date """
     # TODO update this with each release
-    return ("3.0.1", "2024-04-10")
+    return ("3.0.1", "2024-04-11")
 
 
 def get_install_files(cfg):
