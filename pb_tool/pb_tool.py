@@ -71,7 +71,7 @@ def cli():
 def __version():
     """ return the current version and date """
     # TODO update this with each release
-    return ("3.0.1", "2024-04-11")
+    return ("3.0.2", "2024-04-12")
 
 
 def get_install_files(cfg):
@@ -733,7 +733,7 @@ def get_plugin_directory():
         userprofiles = os.path.join('.local', 'share')
     elif platform == 'mac':
         userprofiles = os.path.join('Libary', 'Application Support')
-    qgis3 = os.path.join(home, userprofiles, 'QGIS', 'QGIS3', 'profiles', 'python', 'plugins')
+    qgis3 = os.path.join(home, userprofiles, 'QGIS', 'QGIS3', 'profiles', 'default', 'python', 'plugins')
     return os.path.join(home, qgis3)
 
 
