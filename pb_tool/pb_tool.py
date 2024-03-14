@@ -399,22 +399,14 @@ def zip(config, quick):
                 click.secho("project path: {}".format(current_project_path), fg='green')
                 compressed_plugin_file = os.path.join(temp_dir, compressed_plugin_file_name)
                 compressed_plugin_w8_extension = os.path.join(temp_dir, name)
-                try:
-                    # with py7zr.SevenZipFile(compressed_plugin_file, mode="w") as archive:
-                    #     archive.writeall(path=current_project_path, arcname="")
 
-                    f = shutil.make_archive(
-                        base_name=compressed_plugin_w8_extension,
-                        format="zip",
-                        root_dir=current_project_path,
-                    )
+                shutil.make_archive(
+                    base_name=compressed_plugin_w8_extension,
+                    format="zip",
+                    root_dir=current_project_path,
+                )
 
-                    print(f)
-
-                    click.secho('{0} archive created'.format(compressed_plugin_file_name), fg='green')
-                except:
-                    click.secho("failed to failed to generate file with py7zr", fg='red')
-                    exit()
+                click.secho('{0} archive created'.format(compressed_plugin_file_name), fg='green')
 
                 plugin_destination_path = Path(get_plugin_directory())
                 plugin_destination_file = plugin_destination_path / compressed_plugin_file_name
