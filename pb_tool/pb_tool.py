@@ -28,9 +28,10 @@ import shutil
 import subprocess
 import sys
 import click
-import py7zr
 import urllib3
+import tempfile
 from string import Template
+from pathlib import Path
 
 
 class AliasedGroup(click.Group):
@@ -71,7 +72,7 @@ def cli():
 def __version():
     """ return the current version and date """
     # TODO update this with each release
-    return ("3.0.2", "2024-04-12")
+    return ("3.0.3", "2024-04-14")
 
 
 def get_install_files(cfg):
@@ -390,32 +391,38 @@ def zip(config, quick):
     #    'Create a packaged plugin ({0}.zip) from the deployed files?'.format(name))
     # confirm = True
     if proceed:
-        # delete the zip if it exists
-        if os.path.exists('{0}.zip'.format(name)):
-            os.unlink('{0}.zip'.format(name))
         if name:
+            compressed_plugin_file_name = '{0}.zip'.format(name)
             current_project_path = os.getcwd()
-            current_project_dir_name = os.path.basename(current_project_path)
 
-            click.secho("current_project_path is {}".format(current_project_path), fg='magenta')
-            click.secho("current_project_dir_name is {}".format(current_project_dir_name), fg='magenta')
+            with tempfile.TemporaryDirectory() as temp_dir:
+                click.secho("project path: {}".format(current_project_path), fg='green')
+                compressed_plugin_file = os.path.join(temp_dir, compressed_plugin_file_name)
+                compressed_plugin_w8_extension = os.path.join(temp_dir, name)
+                try:
+                    # with py7zr.SevenZipFile(compressed_plugin_file, mode="w") as archive:
+                    #     archive.writeall(path=current_project_path, arcname="")
 
-            compressed_plugin_file = os.path.join(current_project_path, '{0}.zip'.format(name))
+                    f = shutil.make_archive(
+                        base_name=compressed_plugin_w8_extension,
+                        format="zip",
+                        root_dir=current_project_path,
+                    )
 
-            try:
-                with py7zr.SevenZipFile(compressed_plugin_file, mode="w") as archive:
-                    archive.writeall(path=current_project_path, arcname="")
-                click.secho('The {0}.zip archive has been created in the current directory'.format(name), fg='green')
-            except:
-                click.secho("failed to failed to generate file with py7zr", fg='red')
+                    print(f)
 
-            plugin_destination_file = os.path.join(get_plugin_directory(), '{0}.zip'.format(name))
+                    click.secho('{0} archive created'.format(compressed_plugin_file_name), fg='green')
+                except:
+                    click.secho("failed to failed to generate file with py7zr", fg='red')
+                    exit()
 
-            if os.path.exists(plugin_destination_file):
-                os.unlink(plugin_destination_file)
-            shutil.copyfile(src=compressed_plugin_file, dst=plugin_destination_file)
-            click.secho("plugin {} copied to plugins folder({})".format(name, get_plugin_directory()), fg='green')
+                plugin_destination_path = Path(get_plugin_directory())
+                plugin_destination_file = plugin_destination_path / compressed_plugin_file_name
+                plugin_destination_file.parent.mkdir(parents=True, exist_ok=True)
 
+                shutil.copyfile(src=compressed_plugin_file, dst=plugin_destination_file)
+
+                click.secho("plugin {} copied to plugins folder({})".format(name, get_plugin_directory()), fg='green')
         else:
             click.echo("Your config file is missing the plugin name (name=parameter)")
 
