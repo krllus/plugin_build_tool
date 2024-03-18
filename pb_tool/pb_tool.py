@@ -72,7 +72,7 @@ def cli():
 def __version():
     """ return the current version and date """
     # TODO update this with each release
-    return ("3.0.3", "2024-04-14")
+    return ("3.0.4", "2024-04-16")
 
 
 def get_install_files(cfg):
@@ -651,13 +651,13 @@ def compiled_resource(cfg):
 def compile_files(cfg):
     # Compile all ui and resource files
     # TODO add changed detection
-    # cfg = get_config(config)
+    #cfg = get_config(config)
 
-    # check to see if we have pyuic4
-    pyuic4 = check_path('pyuic4')
+    # check to see if we have pyuic5
+    pyuic5 = check_path('pyuic5')
 
-    if not pyuic4:
-        print("pyuic4 is not in your path---unable to compile your ui files")
+    if not pyuic5:
+        print("pyuic5 is not in your path---unable to compile your ui files")
     else:
         ui_files = cfg.get('files', 'compiled_ui_files').split()
         ui_count = 0
@@ -667,7 +667,7 @@ def compile_files(cfg):
                 output = "{0}.py".format(base)
                 if file_changed(ui, output):
                     print("Compiling {0} to {1}".format(ui, output))
-                    subprocess.check_call([pyuic4, '-o', output, ui])
+                    subprocess.check_call([pyuic5, '-o', output, ui])
                     ui_count += 1
                 else:
                     print("Skipping {0} (unchanged)".format(ui))
@@ -675,12 +675,12 @@ def compile_files(cfg):
                 print("{0} does not exist---skipped".format(ui))
         print("Compiled {0} UI files".format(ui_count))
 
-    # check to see if we have pyrcc4
-    pyrcc4 = check_path('pyrcc4')
+    # check to see if we have pyrcc5
+    pyrcc5 = check_path('pyrcc5')
 
-    if not pyrcc4:
+    if not pyrcc5:
         click.secho(
-            "pyrcc4 is not in your path---unable to compile your resource file(s)",
+            "pyrcc5 is not in your path---unable to compile your resource file(s)",
             fg='red')
     else:
         res_files = cfg.get('files', 'resource_files').split()
@@ -691,7 +691,7 @@ def compile_files(cfg):
                 output = "{0}.py".format(base)
                 if file_changed(res, output):
                     print("Compiling {0} to {1}".format(res, output))
-                    subprocess.check_call([pyrcc4, '-o', output, res])
+                    subprocess.check_call([pyrcc5, '-o', output, res])
                     res_count += 1
                 else:
                     print("Skipping {0} (unchanged)".format(res))

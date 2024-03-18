@@ -22,8 +22,10 @@
 """
 from PyQt4.QtCore import QSettings, QTranslator, qVersion, QCoreApplication
 from PyQt4.QtGui import QAction, QIcon
+
 # Initialize Qt resources from file resources.py
-import resources_rc
+import resource
+
 # Import the code for the dialog
 from test_plugin_dialog import TestPluginDialog
 import os.path
